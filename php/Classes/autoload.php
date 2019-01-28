@@ -1,8 +1,10 @@
 <?php
+
+namespace Bcarroll3\AuthorProject;
 /**
  * PSR-4 Compliant Autoloader
  *
- * This will dynamically load classes by resolving the prefix and class name. This is the method that frameworks
+ * This file will dynamically load classes by resolving the prefix and class name. This is the method that frameworks
  * such as Laravel and Composer automatically resolve class names and load them. To use it, simply set the
  * configurable parameters inside the closure. This example is taken from PHP-FIG, referenced below.
  *
@@ -10,30 +12,30 @@
  * @see http://www.php-fig.org/psr/psr-4/examples/ PSR-4 Example Autoloader
  **/
 spl_autoload_register(function($class) {
-	/**
-	 * CONFIGURABLE PARAMETERS
-	 * prefix: the prefix for all the classes (i.e., the namespace)
-	 * baseDir: the base directory for all classes (default = current directory)
+	/*
+	 * Configurable Parameters
+	 * Prefix: The prefix for all the classes (i.e. the namespace)
+	 * baseDir: The base directory for all classes (default = current directory)
+	 *
 	 **/
-	$prefix = "Bcarroll3\\oop-phase1";
+	$prefix = "Bcarroll33\\AuthorProject";
 	$baseDir = __DIR__;
 
-	// does the class use the namespace prefix?
+	//Does the class use the namespace prefix?
 	$len = strlen($prefix);
-	if (strncmp($prefix, $class, $len) !== 0) {
-		// no, move to the next registered autoloader
+	if (strncmp($prefix, $class, $len) !==0) {
+		//If no, move to the next registered autoloader.
 		return;
 	}
 
-	// get the relative class name
+	//Get the relative class name.
 	$className = substr($class, $len);
 
-	// replace the namespace prefix with the base directory, replace namespace
-	// separators with directory separators in the relative class name, append
-	// with .php
+	//Replace the namespace prefix with the base directory, replace the namespace
+	//separators with directory separators in the relative class name, append with .php.
 	$file = $baseDir . str_replace("\\", "/", $className) . ".php";
 
-	// if the file exists, require it
+	//If the file exists, require it.
 	if(file_exists($file)) {
 		require_once($file);
 	}
