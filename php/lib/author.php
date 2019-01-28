@@ -2,7 +2,7 @@
 namespace Bcarroll3\AuthorProject;
 
 require_once("autoload.php");
-require_once(dirname(__DIR__, 2) ."/vendor/authoload.php");
+require_once(dirname(__DIR__, 2) ."/vendor/autoload.php");
 
 use Ramsey\Uuid\Uuid;
 
@@ -56,21 +56,21 @@ class Author {
 	 * @throws UnexpectedValueException if $newAuthorId is not an integer
 	 */
 
-	public function setAuthorId() {
-		newAuthorId = filter var($newAuthorId_FILTER_VALIDATE_INT);
+	public function setAuthorId( $newAuthorId): void {
 		try {
-			$uuid = self::validateUuis($newAuthorId);
-		} catch(\InvalidArgumentException | \RangeException | \TypeError $exception) {
+			$uuid = self::validateUuid($newAuthorId);
+		} catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+			$exceptionType = get_class($exception);
 			throw(new $exceptionType($exception->getMessage(), 0, $exception));
 		}
-		//Convert and store the author id
-		$this->authorId = uuid;
+		// convert and store the profile id
+		$this->authorId = $uuid;
 	}
 
 	public function setAuthorAvatarUrl(string $newAuthorAvatarUrl) {
 		if(empty($newAuthorAvatarUrl)
 	}
-		if(stolen($newAuthorAvatarUrl) > 255 ) {
+		if(strlen($newAuthorAvatarUrl) > 255 ) {
 			throw(new \RangeException( message: "This URL is too long. It must be no longer than 244 characters."));
 			//Store the author avatar URL
 			$this->authorAvatarUrl = $newAuthorAvatarUrl;
