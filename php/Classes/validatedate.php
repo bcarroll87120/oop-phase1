@@ -1,58 +1,118 @@
 <?php
 
-namespace Jcallaway3\AuthorProject;
-require_once(dirname(__DIR__, 2) . "/vendor/autoload.php");
+namespace Bcarroll3\AuthorProject;
+require_once(dirname(__DIR__, 2) . "/Classes/autoload.php");
 use Ramsey\Uuid\Uuid;
 
 /**
- * Trait to validate a UUID
+ * Trait to Validate a mySQL Date
  *
- * This trait will validate a UUID in any of the following three formats
+ * This trait will inject a private method to validate a mySQL style date (e.g., 2016-01-15 15:32:48.643216). It will
+ * convert a string representation to a DateTime object or throw an exception.
  *
- * 1. Human-readable string (36 bytes)
- * 2. Binary string (16 bytes)
- * 3. Ramsey\Uuid\Uuid object
- *
- * @author Brandon Carroll <bcarroll@live.com>
+ * @author Brandon Carroll <jcallaway3@cnm.edu>
  **/
 
-trait ValidateUuid {
+trait ValidateDate {
 	/**
-	 * Validates a UUID irrespective of the format
+	 * custom filter for mySQL date
 	 *
-	 * @param string|Uuid $newUuid to validate
-	 * @return Uuid object with validated uuid
-	 * @throws \InvalidArgumentException if $newUuid is not a valid uuid
-	 * @throws \RangeException if $newUuid is not a valid uuid v4
+	 * Converts a string to a DateTime object. This is designed to be used within a mutator method.
+	 *
+	 * @param \DateTime | string $newDate date to validate
+	 * @return \DateTime DateTime object containing the validated date
+	 * @see http://php.net/manual/en/class.datetime.php PHP's DateTime class
+	 * @throws \InvalidArgumentException if the date is in an invalid format
+	 * @throws \RangeException if the date is not a Gregorian date
+	 * @throws \TypeError when type hints fail
 	 **/
-	private static function validateUuid($newUuid) {
-		//Verify a string uuid
-		if(gettype($newUuid) === "string") {
-			// Sixteen characters is binary data from mySQL - convert to string and fall to next if block
-			if(strlen($newUuid) === 16) {
-				$newUuid = bin2hex($newUuid);
-				$newUuid = substr($newUuid, 0, 8) . "-" . substr($newUuid, 8, 4) . "-" . substr($newUuid, 12, 4) . "-" . substr($newUuid, 16, 4) . "-" . substr($newUuid, 20, 12);
-			}
-			//Thirty-six characters is a human-readable uuid
-			if(strlen($newUuid) === 36) {
-				if(Uuid::isValid($newUuid) === false) {
-					throw(new \InvalidArgumentException("Invalid UUID"));
-				}
-				$uuid = Uuid::fromString($newUuid);
-			} else {
-				throw(new \InvalidArgumentException("Invalid UUID"));
-			}
-		} else if(gettype($newUuid) === "object" && get_class($newUuid) === "Ramsey\\Uuid\\Uuid") {
-			//If the misquote ID is already a valid UUID, continue.
-			$uuid = $newUuid;
-		} else {
-			//Throw out any other trash.
-			throw(new \InvalidArgumentException("Invalid UUID"));
+
+	private static function validateDate($newDate): \DateTime {
+		//Base case: if the date is a DateTime object, there is no work to be done.
+		if(is_object($newDate) === true && get_class($newDate) === "DateTime") {
+			return ($newDate);
 		}
-		//Verify the UUID is UUID v4.
-		if($uuid->getVersion() !==4) {
-			throw(new \RangeException("The UUID is not the correct version."));
+		//Treat the date as a mySQL date string: Y-m-d
+		$newDate = trim($newDate);
+		if((preg_match("/^(\d{4})-(\d{2})-(\d{2})$/", $newDate, $matches)) !== 1) {
+			throw(new \InvalidArgumentException("The date is not a valid date."));
 		}
-		return($uuid);
+		//Verify the date is really a valid calendar date
+		$year = intval($matches[1]);
+		$month = intval($matches[2]);
+		$day = intval($matches[3]);
+		if(checkdate($month, $day, $year) === false) {
+			throw(new \RangeException("The date is not a Gregorian date."));
+		}
+		//If the date passes all of the previous tests, the date is clean.
+		$newDate = \DateTime::createFromFormat("Y-m-d H:i:s", $newDate . " 00:00:00");
+		return ($newDate);
+	}
+
+	/**
+	 * Custom filter for mySQL style dates
+	 *
+	 * Converts a string to a DateTime object. This is designed to be used within a mutator method.
+	 *
+	 * @param mixed $newDateTime date to validate
+	 * @return \DateTime DateTime object containing the validated name
+	 * @see http://php.net/manual/en/class.datetime.php PHP's DateTime class
+	 * @throws \InvalidArgumentException if the date is in an invalid format
+	 * @throws \RangeException if the date is not a Gregorian date
+	 * @throws \TypeError when the type hints fail
+	 * @throws \Exception if some other error occurs
+	 **/
+
+
+	private static function validateDateTime($newDateTime) : \DateTime {
+		//Base case: if the date is a DateTime object, there is no work to be done.
+		if(is_object($newDateTime) === true && get_class($newDateTime) === "DateTime") {
+			return ($newDateTime);
+		}
+		try {
+			list($date, $time) = explode(" ", $newDateTime);
+			$date = self::validateDate($date);
+			$time = self::validateDate($time);
+			list($hour, $minute, $second) = explode(":", $time);
+			list($second, $microseconds) = explode(".", $second);
+			$date->setTime($hour, $minute, $second, $microseconds);
+			return ($date);
+		} catch(\InvalidArgumentException | \RangeException | \Exception | \TypeError $exception) {
+			$exceptionType = get_class($exception);
+			throw(new $exceptionType($exception->getMessage(), 0, $exception));
+		}
+	}
+	/**
+	 * Custom filter for mySQL style times
+	 *
+	 * Validates a time string. This is designed to be used within a mutator method.
+	 *
+	 * @param string $newTime time to validate
+	 * @return string validate time as a string H:i:s[.u]
+	 * @see http://php.net/manual/en/class.datetime.php PHP's DateTime class
+	 * @throws \InvalidArgumentException if the date is in an invalid format
+	 * @throws \RangeException if the date is not a Gregorian date
+	 **/
+
+
+	private static function validateTime(string $newTime) : string {
+		//Treat the date as a mySQL date string: H:i:s[.u]
+		$newTime = trim($newTime);
+		if((preg_match("/^(\d{2}):(\d{2}):(\d{2})(?(?=\.)\.(\d{1,6}))$/", $newTime, $matches)) !== 1) {
+			throw(new \InvalidArgumentException("The time is not a valid time."));
+		}
+		//Verify the date is really a valid calendar time
+		$hour = intval($matches[1]);
+		$minute = intval($matches[2]);
+		$second = intval($matches[3]);
+		//Verify the time is really a valid wall clock time
+		if($hour < 0 || $hour >=24 || $minute < 0 || $minute >=60 || $second < 0 || $second >= 60) {
+			throw(new \RangeException("The date is not a valid wall clock time."));
+		}
+		//Put a placeholder for microseconds if they do not exist
+		$microseconds = $matches[4] ?? "0";
+		$newTime = "$hour:$minute:$second.$microseconds";
+		//If the time passes all of the previous tests, the time is clean.
+		return($newTime);
 	}
 }
